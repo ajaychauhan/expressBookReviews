@@ -42,6 +42,26 @@ public_users.get('/author/:author', function (req, res) {
     return res.status(200).json(found);
 });
 
+public_users.get('/authorasync/:author', (req, res) => {
+    const author = req.params.author;
+    const API_URL = "http://localhost:5000/author";
+
+    axios.get(API_URL, { timeout: 5000 })
+        .then(response => {
+            const books = Object.entries(response.data).map(([isbn, book]) => ({
+                isbn: book.isbn ? book.isbn[0] : 'N/A',
+                title: book.title,
+                author: book.author_name ? book.author_name[0] : 'Unknown',
+                reviews: {}
+            }));
+            res.status(200).json(books);
+        })
+        .catch(error => {
+            console.error('Axios Error:', error.message);
+            res.status(500).json({ message: "Failed to fetch books by author" });
+        });
+});
+
 // Get all books based on title
 public_users.get('/title/:title', function (req, res) {
     const title = req.params.title;     
