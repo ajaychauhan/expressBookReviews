@@ -9,21 +9,23 @@ const app = express();
 
 app.use(express.json());
 
+app.use("/shop", genl_routes);
+
 app.use("/customer", session({ secret: "fingerprint_customer", resave: true, saveUninitialized: true }))
 
 app.use("/customer/auth/*", function auth(req, res, next) {
-    if (req.session && req.session.token) {
-        try {
-            const vtoken = jwt.verify(req.session.token, "utS24hocjnruzxcyjndf")
-            vtoken = jwt.decode;
-            next();
-        }
-        catch (err) {
-            req.session.destroy();
-            res.statusCode(401);
-        }
-    } else {
-        res.status(401).json({ msg: "Unauthorized: No token provided" });
+    const token = req.session?.token || req.headers.authorization?.split(' ')[1];    
+    if (!token) {
+        return res.status(401).json({ msg: "Unauthorized: No token provided" });
+    }
+    try {
+        const decoded = jwt.verify(token, "utS24hocjnruzxcyjndf");
+        req.user = decoded; 
+        next();
+    } catch (err) {
+        req.session.destroy(() => {
+            res.status(401).json({ msg: "Unauthorized: Invalid or expired token" });
+        });
     }
 });
 
